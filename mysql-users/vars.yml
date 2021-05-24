@@ -1,0 +1,13 @@
+login_host: 172.17.0.2
+login_user: root
+login_password: admin
+subnet_client: '%'
+
+# Variables of user
+user_name: 'kris'
+user_password: '1234'
+#grants: 'SELECT'
+grants: 'SELECT,INSERT,UPDATE,DELETE,CREATE,DROP'
+databases:
+  - db1
+  - db3

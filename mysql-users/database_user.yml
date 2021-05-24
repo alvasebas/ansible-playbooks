@@ -1,0 +1,43 @@
+- hosts: localhost
+
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: "Create user: {{ user_name }}"
+      mysql_user:
+        login_host: "{{ login_host }}"
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+        host: "{{ subnet_client }}"
+        name: "{{ user_name }}"
+        password: "{{ user_password }}"
+        state: present
+        priv: "*.*:USAGE"
+        update_password: on_create
+      when: state == 'add'
+                
+    - name: "Set and update all roles to: {{ databases }}"
+      mysql_user:
+        login_host: "{{ login_host }}"
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+        host: "{{ subnet_client }}"
+        name: "{{ user_name }}"
+        password: "{{ user_password }}"
+        state: present
+        append_privs: yes
+        priv: "{{ item }}.*:{{ grants }}"
+      with_items:
+        - "{{ databases }}"
+      when: state == 'add'
+
+    - name: "Removes and revoke privileges {{ user_name }} account"
+      mysql_user:
+        login_host: "{{ login_host }}"
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+        host: "{{ subnet_client }}"
+        name: "{{ user_name }}"
+        state: absent
+      when: state == 'delete'
