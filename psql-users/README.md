@@ -54,7 +54,7 @@ psql postgres -h IP_ADDRESS -U postgres
 
 :warning: Before executing the following commands, the databases listed in the file `vars_psql.yml` must be created.
 
-- To add a user, and also add or define the user's permissions and accesses defined in the variables file
+- To add a user, or also add and define the user's permissions and accesses defined in the `database_user.yml` file
 
 ```bash
 ansible-playbook database_user.yml -e 'state=add'
