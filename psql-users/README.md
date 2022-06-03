@@ -48,7 +48,7 @@ From PSQL Client terminal
 psql postgres -h IP_ADDRESS -U postgres
 ```
 
-**Note:** Users and passwords are defined in the repository **.yml*** files
+**Note:** Users and passwords are defined in the repository **.yml** files
 
 ## Ansible commands
 
