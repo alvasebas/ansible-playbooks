@@ -1,0 +1,239 @@
+- hosts: localhost
+
+  vars_files:
+    - vars_psql.yml
+
+  tasks:
+    - name: "Add user {{ user_name }} to psql engine and set CONNECT to: {{ databases.ro }}"
+      postgresql_user:
+        login_host: "{{ login_host }}"
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+        name: "{{ user_name }}"
+        password: "{{ user_password }}"
+        expires: infinity
+        state: present
+        db: '{{ item }}'
+        priv: "CONNECT"
+      with_items:    
+        - '{{ databases.ro }}'
+      when:
+        - state == 'add'
+        - item[0] is defined
+
+    - name: "Add user {{ user_name }} to psql engine and set CONNECT to: {{ databases.rw }}"
+      postgresql_user:
+        login_host: "{{ login_host }}"
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+        name: "{{ user_name }}"
+        password: "{{ user_password }}"
+        expires: infinity
+        state: present
+        db: '{{ item }}'
+        priv: "CONNECT"
+      with_items:
+        - '{{ databases.rw }}'
+      when:
+        - state == 'add'
+        - item[0] is defined
+
+    - name: "Setup role USAGE on SHCHEMA PUBLIC to {{ databases.ro }} for user: {{ user_name }}"
+      postgresql_privs:
+        login_host: "{{ login_host }}"
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+        role: "{{ user_name }}"
+        state: present
+        db: '{{ item }}'
+        type: schema
+        objs: public
+        privs: USAGE
+      with_items:
+        - '{{ databases.ro }}'
+      when:
+        - state == 'add'
+        - item[0] is defined
+
+    - name: "Setup role RO on TABLES/SEQUENCES to {{ databases.ro }} for user: {{ user_name }}"
+      postgresql_privs:
+        login_host: "{{ login_host }}"
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+        role: "{{ user_name }}"
+        state: present
+        db: "{{ item[1] }}"
+        schema: public
+        objs: ALL_IN_SCHEMA
+        type: "{{ item[0] }}"
+        privs: SELECT
+        grant_option: 'no'
+      with_nested:
+        - [ 'table', 'sequence' ]
+        - ['{{ databases.ro }}']
+      when: ( state == 'add' ) and (item[1] != '')
+
+    - name: "Setup role USAGE on SHCHEMA PUBLIC to {{ databases.rw }} for user: {{ user_name }}"
+      postgresql_privs:
+        login_host: "{{ login_host }}"
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+        role: "{{ user_name }}"
+        state: present
+        db: '{{ item }}'
+        type: schema
+        objs: public
+        privs: USAGE
+      with_items:
+        - '{{ databases.rw }}'
+      when:
+        - state == 'add'
+        - item[1] is defined
+
+    - name: "Setup role RW on TABLES to {{ databases.rw }} for user: {{ user_name }}"
+      postgresql_privs:
+        login_host: "{{ login_host }}"
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+        role: "{{ user_name }}"
+        state: present
+        db: "{{ item[1] }}"
+        schema: public
+        objs: ALL_IN_SCHEMA
+        type: "{{ item[0] }}"              
+        privs: 'SELECT,INSERT,DELETE,TRUNCATE'
+        grant_option: 'no'
+      with_nested:
+        - 'table'
+        - '{{ databases.rw }}'
+      when: ( state == 'add' ) and (item[1] != '')
+
+    - name: "Setup role SELECT on SEQUENCE to {{ databases.rw }} for user: {{ user_name }}"
+      postgresql_privs:
+        login_host: "{{ login_host }}"
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+        role: "{{ user_name }}"
+        state: present
+        db: "{{ item[1] }}"
+        schema: public
+        objs: ALL_IN_SCHEMA
+        type: "{{ item[0] }}"              
+        privs: 'SELECT'
+        grant_option: 'no'
+      with_nested:
+        - 'sequence'
+        - '{{ databases.rw }}'
+      when: ( state == 'add' ) and (item[1] != '')
+
+    - name: "Revoke role USAGE on SHCHEMA PUBLIC to {{ databases.ro }} for user: {{ user_name }}"
+      postgresql_privs:
+        login_host: "{{ login_host }}"
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+        role: "{{ user_name }}"
+        state: absent
+        db: '{{ item }}'
+        type: schema
+        objs: public
+        privs: USAGE
+      with_items:
+        - '{{ databases.ro }}'
+      when:
+        - state == 'revoke'
+        - item[0] is defined
+
+    - name: "Revoke connections on {{ databases.ro }} to user: {{ user_name }}"
+      postgresql_privs:
+        login_host: "{{ login_host }}"
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+        role: "{{ user_name }}"
+        db: "{{ item }}"
+        type: database
+        privs: CONNECT
+        state: absent
+      with_items:
+        - '{{ databases.ro }}'
+      when:
+        - state == 'revoke'
+        - item[0] is defined
+
+    - name: "Revoke roles of SHCHEMA PUBLIC on {{ databases.ro }} for user: {{ user_name }}"
+      postgresql_privs:
+        login_host: "{{ login_host }}"
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+        role: "{{ user_name }}"
+        state: absent
+        db: "{{ item[1] }}"
+        schema: public
+        type: "{{ item[0] }}"
+        objs: ALL_IN_SCHEMA        
+        privs: ALL
+      with_nested:
+        - [ 'table', 'sequence' ]
+        - '{{ databases.ro }}'
+      when: ( state == 'revoke' ) and (item[1] != '')
+
+    - name: "Revoke role USAGE on SHCHEMA PUBLIC to {{ databases.rw }} for user: {{ user_name }}"
+      postgresql_privs:
+        login_host: "{{ login_host }}"
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+        role: "{{ user_name }}"
+        state: absent
+        db: '{{ item }}'
+        type: schema
+        objs: public
+        privs: USAGE
+      with_items:
+        - '{{ databases.rw }}'
+      when:
+        - state == 'revoke'
+        - item[0] is defined
+
+    - name: "Revoke connections on {{ databases.rw }} to user: {{ user_name }}"
+      postgresql_privs:
+        login_host: "{{ login_host }}"
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+        role: "{{ user_name }}"
+        db: "{{ item }}"
+        type: database
+        privs: CONNECT
+        state: absent
+      with_items:
+        - '{{ databases.rw }}'
+      when:
+        - state == 'revoke'
+        - item[0] is defined
+
+    - name: "Revoke roles of SHCHEMA PUBLIC on {{ databases.rw }} for user: {{ user_name }}"
+      postgresql_privs:
+        login_host: "{{ login_host }}"
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+        role: "{{ user_name }}"
+        state: absent
+        db: '{{ item[1] }}'
+        schema: public
+        type: '{{ item[0] }}'
+        objs: ALL_IN_SCHEMA        
+        privs: ALL
+      with_nested:
+        - [ 'table', 'sequence' ]
+        - '{{ databases.rw }}'
+      when: ( state == 'revoke' ) and (item[1] != '')
+
+    - name: "Delete user {{ user_name }} of PSQL engine"
+      postgresql_user:
+        login_host: "{{ login_host }}"
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+        name: "{{ user_name }}"
+        db: postgres
+        priv: ALL
+        state: absent
+      when: state == 'delete'
+

@@ -1,0 +1,16 @@
+login_host: 172.18.0.2
+login_user: postgres
+login_password: 'admin'
+
+# Variables of user
+user_name: 'cooper'
+user_password: '1234'
+
+# GRANTS defined on playblook
+# Always complete the list of databases for the user
+databases:
+    ro: # PROD: SELECT
+        - dbprod
+    rw: # TESTING: SELECT,INSERT,DELETE,TRUNCATE
+        - dbtest
+
