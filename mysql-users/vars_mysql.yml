@@ -1,0 +1,18 @@
+login_host: 172.20.0.2
+login_user: root
+login_password: toor
+subnet_client: '%'
+
+# Variables of user
+user_name: 'timon'
+user_password: '1234'
+
+# Always complete the list of databases for the user
+databases:
+    ro: # PROD
+        - db_prod
+    grants_ro: 'SELECT'
+    rw: # TEST
+        - db_test
+    grants_rw: 'SELECT,INSERT,UPDATE,DELETE,CREATE'
+
