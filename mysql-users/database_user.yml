@@ -1,7 +1,7 @@
 - hosts: localhost
 
   vars_files:
-    - vars.yml
+    - vars_mysql.yml
 
   tasks:
     - name: "Create user: {{ user_name }}"
@@ -17,7 +17,7 @@
         update_password: on_create
       when: state == 'add'
                 
-    - name: "Set and update all roles to: {{ databases }}"
+    - name: "Set and update roles for all tables in {{ databases.ro }} for user: {{ user_name }}"
       mysql_user:
         login_host: "{{ login_host }}"
         login_user: "{{ login_user }}"
@@ -27,12 +27,31 @@
         password: "{{ user_password }}"
         state: present
         append_privs: yes
-        priv: "{{ item }}.*:{{ grants }}"
+        priv: "{{ item }}.*:{{ databases.grants_ro }}"
       with_items:
-        - "{{ databases }}"
-      when: state == 'add'
+        - '{{ databases.ro }}'
+      when:
+        - state == 'add'
+        - item[0] is defined
 
-    - name: "Removes and revoke privileges {{ user_name }} account"
+    - name: "Set and update roles for all tables in {{ databases.rw }} for user: {{ user_name }}"
+      mysql_user:
+        login_host: "{{ login_host }}"
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+        host: "{{ subnet_client }}"
+        name: "{{ user_name }}"
+        password: "{{ user_password }}"
+        state: present
+        append_privs: yes
+        priv: "{{ item }}.*:{{ databases.grants_rw }}"
+      with_items:
+        - '{{ databases.rw }}'
+      when:
+        - state == 'add'
+        - item[1] is defined
+
+    - name: "Remove and revoke all privileges from {{ user_name }} account"
       mysql_user:
         login_host: "{{ login_host }}"
         login_user: "{{ login_user }}"
@@ -41,3 +60,4 @@
         name: "{{ user_name }}"
         state: absent
       when: state == 'delete'
+
